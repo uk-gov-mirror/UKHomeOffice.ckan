@@ -144,6 +144,8 @@ def output_feed(results, feed_title, feed_description, feed_link, feed_url,
                 navigation_urls, feed_guid):
     author_name = config.get(u'ckan.feeds.author_name', u'').strip() or \
         config.get(u'ckan.site_id', u'').strip()
+    
+    CONTROL_CHARS = r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]'
 
     def remove_control_characters(s):
         if not s:
