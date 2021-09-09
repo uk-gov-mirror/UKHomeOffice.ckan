@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 import logging
-import re
+import unicodedata
 
 from six.moves.urllib.parse import urlparse
 from flask import Blueprint, make_response
@@ -144,8 +144,12 @@ def output_feed(results, feed_title, feed_description, feed_link, feed_url,
                 navigation_urls, feed_guid):
     author_name = config.get(u'ckan.feeds.author_name', u'').strip() or \
         config.get(u'ckan.site_id', u'').strip()
-    
-    CONTROL_CHARS = r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]'
+
+    def remove_control_characters(s):
+        if not s:
+            return ""
+
+        return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
 
     # TODO: language
     feed_class = CKANFeed
@@ -181,7 +185,7 @@ def output_feed(results, feed_title, feed_description, feed_link, feed_url,
                 id=pkg['id'],
                 ver=3,
                 _external=True),
-            description=re.sub(CONTROL_CHARS, '', pkg.get(u'notes', u'') or ''),
+            description=remove_control_characters(pkg.get(u'notes', u'')),
             updated=h.date_str_to_datetime(pkg.get(u'metadata_modified')),
             published=h.date_str_to_datetime(pkg.get(u'metadata_created')),
             unique_id=_create_atom_id(u'/dataset/%s' % pkg['id']),
