@@ -435,6 +435,7 @@ def read(package_type, id):
         pkg_dict = get_action(u'package_show')(context, data_dict)
         pkg = context[u'package']
     except (NotFound, NotAuthorized):
+        log.error("User: %r is attempting to access %r: %r", g.user, package_type, id)
         return base.abort(404, _(u'Dataset not found'))
 
     g.pkg_dict = pkg_dict
