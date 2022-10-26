@@ -1103,7 +1103,154 @@ def _clear_activities():
     model.Session.flush()
 
 
-@pytest.mark.usefixtures("clean_db", "with_request_context")
+
+@pytest.mark.usefixtures("clean_db")
+class TestUserCreateDb():
+
+    def test_anon_user_create_does_not_update(self):
+        user1 = factories.User(about="This is user 1")
+        user_dict = {
+            "id": user1["id"],
+            "name": "some_name",
+            "email": "some_email@example.com",
+            "password": "test1234",
+        }
+
+        context = {
+            "user": None,
+            "ignore_auth": False,
+        }
+
+        user2 = helpers.call_action("user_create", context=context, **user_dict)
+        assert user2["id"] != user1["id"]
+        assert user2["about"] != "This is user 1"
+
+    def test_normal_user_create_does_not_update(self):
+        user1 = factories.User(about="This is user 1")
+        user_dict = {
+            "id": user1["id"],
+            "name": "some_name",
+            "email": "some_email@example.com",
+            "password": "test1234",
+        }
+
+        context = {
+            "user": factories.User()["name"],
+            "ignore_auth": False,
+        }
+
+        user2 = helpers.call_action("user_create", context=context, **user_dict)
+        assert user2["id"] != user1["id"]
+        assert user2["about"] != "This is user 1"
+
+    def test_sysadmin_user_create_does_not_update(self):
+        user1 = factories.User(about="This is user 1")
+        user_dict = {
+            "id": user1["id"],
+            "name": "some_name",
+            "email": "some_email@example.com",
+            "password": "test1234",
+        }
+
+        context = {
+            "user": factories.Sysadmin()["name"],
+            "ignore_auth": False,
+        }
+
+        user2 = helpers.call_action("user_create", context=context, **user_dict)
+        assert user2["id"] != user1["id"]
+        assert user2["about"] != "This is user 1"
+
+    def test_anon_users_can_not_provide_custom_id(self):
+
+        user_dict = {
+            "id": "custom_id",
+            "name": "some_name",
+            "email": "some_email@example.com",
+            "password": "test1234",
+        }
+
+        context = {
+            "user": None,
+            "ignore_auth": False,
+        }
+
+        user = helpers.call_action("user_create", context=context, **user_dict)
+        assert user["id"] != "custom_id"
+
+    def test_normal_users_can_not_provide_custom_id(self):
+
+        user_dict = {
+            "id": "custom_id",
+            "name": "some_name",
+            "email": "some_email@example.com",
+            "password": "test1234",
+        }
+
+        context = {
+            "user": factories.User()["name"],
+            "ignore_auth": False,
+        }
+
+        user = helpers.call_action("user_create", context=context, **user_dict)
+        assert user["id"] != "custom_id"
+
+    def test_sysadmin_can_provide_custom_id(self):
+
+        user_dict = {
+            "id": "custom_id",
+            "name": "some_name",
+            "email": "some_email@example.com",
+            "password": "test1234",
+        }
+        context = {
+            "user": factories.Sysadmin()["name"],
+            "ignore_auth": False,
+        }
+
+        user = helpers.call_action("user_create", context=context, **user_dict)
+        assert user["id"] == "custom_id"
+
+
+@pytest.mark.usefixtures("non_clean_db")
+class TestFollowCommon(object):
+    def test_validation(self):
+        user = factories.User()
+        unfollow_actions = (
+            "unfollow_user",
+            "unfollow_dataset",
+            "unfollow_group",
+        )
+        follow_actions = ("follow_user", "follow_dataset", "follow_group")
+        count_actions = (
+            "user_follower_count",
+            "dataset_follower_count",
+            "group_follower_count",
+        )
+        list_actions = (
+            "user_follower_list",
+            "dataset_follower_list",
+            "group_follower_list",
+        )
+        my_actions = (
+            "am_following_dataset",
+            "am_following_user",
+            "am_following_group",
+        )
+        for action in (
+            follow_actions
+            + unfollow_actions
+            + count_actions
+            + list_actions
+            + my_actions
+        ):
+            for object_id in ("bad id", "     ", 3, 35.7, "xxx", None, ""):
+                with pytest.raises(logic.ValidationError):
+                    context = {"user": user["name"]}
+                    helpers.call_action(action, context, id=object_id)
+
+
+@pytest.mark.usefixtures("non_clean_db")
 class TestFollowDataset(object):
     def test_no_activity(self, app):
 
