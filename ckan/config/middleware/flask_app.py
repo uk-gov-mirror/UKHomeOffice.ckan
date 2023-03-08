@@ -22,6 +22,7 @@ from flask_babel import Babel
 from beaker.middleware import SessionMiddleware
 from ckan.common import asbool
 from fanstatic import Fanstatic
+from prometheus_flask_exporter import PrometheusMetrics
 from repoze.who.config import WhoConfig
 from repoze.who.middleware import PluggableAuthenticationMiddleware
 
@@ -130,6 +131,9 @@ def make_flask_stack(conf):
     debug = asbool(conf.get('debug', conf.get('DEBUG', False)))
     testing = asbool(conf.get('testing', conf.get('TESTING', False)))
     app = flask_app = CKANFlask(__name__, static_url_path='')
+
+    metrics = PrometheusMetrics(app, excluded_paths=['metrics'])
+    app._metrics = metrics
 
     # Register storage for accessing group images, site logo, etc.
     storage_folder = []
