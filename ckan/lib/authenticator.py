@@ -21,6 +21,10 @@ class UsernamePasswordAuthenticator(object):
         user = User.by_name(login)
 
         if user is None:
+          user_accounts = User.by_email(login)
+          user = user_accounts[0] if len(user_accounts) > 0 else None
+
+        if user is None:
             log.debug('Login failed - username %r not found', login)
         elif not user.is_active():
             log.debug('Login as %r failed - user isn\'t active', login)
